@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 
+import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.stem import SnowballStemmer
@@ -19,6 +20,13 @@ LANGUAGES = {
     "es": "spanish",
     "pt": "portuguese",
 }
+
+def setup_nltk():
+    for pkg in ("stopwords", "punkt"):
+        nltk.download(pkg, quiet=True)
+
+# not very user-friendly when using e.g. --help
+setup_nltk()
 
 def get_stop_words(lang):
     return stopwords.words(LANGUAGES.get(lang, lang))
