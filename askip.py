@@ -8,7 +8,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 
 from nltk.corpus import stopwords
-from nltk.tokenize import sent_tokenize
+from nltk.tokenize import sent_tokenize, word_tokenize
+from nltk.stem import SnowballStemmer
 
 LANGUAGES = {
     "en": "english",
@@ -20,6 +21,13 @@ LANGUAGES = {
 
 def get_stop_words(lang):
     return stopwords.words(LANGUAGES.get(lang, lang))
+
+def mk_tokenizer(lang):
+    stemmer = SnowballStemmer(LANGUAGES.get(lang, lang))
+    def tokenize(text):
+        tokens = word_tokenize(text)
+        return [stemmer.stem(tok) for tok in tokens]
+    return tokenize
 
 class AskipModel:
     def __init__(self, wikipedia_url):
@@ -47,21 +55,24 @@ class AskipModel:
                 if len(p) < 30:
                     continue
 
+                if "»" in p and not "«" in p:
+                    continue
+
                 texts.append(p)
 
         stop_words = "english" if lang == "en" else get_stop_words(lang)
 
         vectorizer = TfidfVectorizer(
-                max_df=0.99,
-                min_df=0.01,
+                tokenizer=mk_tokenizer(lang),
+                max_df=0.95,
+                min_df=0.001,
                 strip_accents="unicode",
                 stop_words=stop_words)
         X = vectorizer.fit_transform(texts)
 
         n_clusters = max(titles, 16, len(texts)//10)  # arbitrary
-        km = KMeans(n_clusters=n_clusters).fit(X)
 
-        print(n_clusters)
+        km = KMeans(n_clusters=n_clusters).fit(X.todense())
 
         self._vectorizer = vectorizer
         self._km = km
@@ -75,8 +86,14 @@ class AskipModel:
 
         cluster = self._km.predict(self._vectorizer.transform([q]))[0]
 
+        n = 0
+
         for i, cl in enumerate(self._km.labels_):
             if cl == cluster:
+                n += 1
                 print(self._texts[i], end=" ")
+
+                if n > 9:
+                    break
 
         print()
