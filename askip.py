@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 
 import re
+import argparse
 import wikipedia
 from urllib.parse import urlparse
 
@@ -64,8 +65,8 @@ class AskipModel:
 
         vectorizer = TfidfVectorizer(
                 tokenizer=mk_tokenizer(lang),
-                max_df=0.95,
-                min_df=0.001,
+                max_df=0.97,
+                min_df=0.01,
                 strip_accents="unicode",
                 stop_words=stop_words)
         X = vectorizer.fit_transform(texts)
@@ -93,7 +94,28 @@ class AskipModel:
                 n += 1
                 print(self._texts[i], end=" ")
 
-                if n > 9:
+                if n > 4:
                     break
 
         print()
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("wikipedia_url")
+    args = parser.parse_args()
+
+    m = AskipModel(args.wikipedia_url)
+    while True:
+        try:
+            q = input("--> ")
+        except EOFError:
+            break
+
+        if not q or q in {"bye", "exit", "quit"}:
+            break
+
+        m.ask(q)
+
+if __name__ == "__main__":
+    main()
