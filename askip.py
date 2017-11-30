@@ -2,8 +2,9 @@
 
 import re
 import argparse
-import wikipedia
 from urllib.parse import urlparse
+
+import wikipedia
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
@@ -95,15 +96,21 @@ class AskipModel:
 
         cluster = self._km.predict(self._vectorizer.transform([q]))[0]
 
-        n = 0
+        indexes = [i for i, cl in enumerate(self._km.labels_) if cl == cluster]
 
-        for i, cl in enumerate(self._km.labels_):
-            if cl == cluster:
-                n += 1
-                print(self._texts[i], end=" ")
+        # Try to limit the number of results by assuming sentences about a
+        # subject are grouped together in the corpus.
+        # We should first check if this is necessary by looking at the
+        # distribution of the indexes. If they're all in the same place in the
+        # corpus that step isn't necessary.
+        p05 = indexes[ int(len(indexes) * 0.05) ]
+        p95 = indexes[ int(len(indexes) * 0.95) ]
 
-                if n > 4:
-                    break
+        indexes = [i for i in indexes if p05 <= i <= p95]
+
+        # arbitrary limit
+        for i in indexes[:4]:
+            print(self._texts[i], end=" ")
 
         print()
 
